@@ -43,7 +43,7 @@ npm install
 npm start
 
 # Build the application for windows
-npm build:win
+npm run build:win
 ```
 
 ### Environment Variables
@@ -97,7 +97,7 @@ npm install
 npm start
 
 # Construire l'application pour Windows
-npm build:win
+npm run build:win
 ```
 
 ### Variables d'Environnement
