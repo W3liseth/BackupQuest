@@ -701,7 +701,7 @@ class BackupManager {
         });
 
         if (job) {
-            this.scheduledJobs.set(frequency, job);
+        this.scheduledJobs.set(frequency, job);
             console.log(`Scheduled job successfully created for frequency: ${frequency}`);
         } else {
             console.error(`Failed to schedule job for frequency: ${frequency}`);

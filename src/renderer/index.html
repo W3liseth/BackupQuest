@@ -33,18 +33,18 @@
 
         <div class="main-content">
             <div class="settings-panel">
-                <h2>Configuration</h2>
+                <h2 data-i18n="configuration">Configuration</h2>
                 
                 <div class="setting-group">
-                    <label>Dossier World of Warcraft</label>
+                    <label data-i18n="wowPath">Chemin de World of Warcraft</label>
                     <div class="path-selector">
-                        <input type="text" id="wowPath" readonly>
+                        <input type="text" id="wowPath" readonly data-i18n-placeholder="wowPath">
                         <button id="selectWowPath" class="secondary-button" title="Parcourir"><i class="fas fa-folder-open"></i></button>
                     </div>
                 </div>
 
                 <div class="setting-group">
-                    <label>Version du jeu</label>
+                    <label data-i18n="gameVersion">Version du jeu</label>
                     <select id="gameVersion">
                         <option value="retail">Retail</option>
                         <option value="classic">Classic</option>
@@ -52,160 +52,163 @@
                 </div>
 
                 <div class="setting-group">
-                    <label>Type de sauvegarde</label>
-                    <select id="backupTypeSelect">
+                    <label data-i18n="backupType">Type de sauvegarde</label>
+                    <select id="backupType">
                         <option value="local">Local</option>
                         <option value="drive">Google Drive</option>
                     </select>
                 </div>
 
                 <div class="setting-group" id="localBackupSettings">
-                    <label>Dossier de sauvegarde</label>
+                    <label data-i18n="backupPath">Chemin de sauvegarde</label>
                     <div class="path-selector">
-                        <input type="text" id="backupPath" readonly>
+                        <input type="text" id="backupPath" readonly data-i18n-placeholder="backupPath">
                         <button id="selectBackupPath" class="secondary-button" title="Parcourir"><i class="fas fa-folder-open"></i></button>
                     </div>
                 </div>
             </div>
 
             <div class="backup-panel">
-                <h2>Sauvegarde</h2>
+                <h2 data-i18n="backup">Sauvegarde</h2>
                 <div class="backup-actions">
-                    <button id="backupNow" class="primary-button">
+                    <button id="backupNow" class="primary-button" data-i18n="backupNow">
                         <i class="fas fa-save"></i> Sauvegarder maintenant
                     </button>
-                    <button id="restoreBackup" class="secondary-button">
+                    <button id="restoreBackup" class="secondary-button" data-i18n="restoreBackup">
                         <i class="fas fa-redo"></i> Restaurer une sauvegarde
                     </button>
-                    <button id="backupsBtn" class="secondary-button">
+                    <button id="backupsBtn" class="secondary-button" data-i18n="manageBackups">
                          <i class="fas fa-list"></i> Gestion des sauvegardes
                     </button>
                 </div>
 
-                <div class="schedule-section">
-                    <h3>Planification automatique</h3>
-                    <div class="schedule-options">
+                <div class="setting-group">
+                    <h3 data-i18n="backupSettings">Paramètres de sauvegarde</h3>
                         <label>
                             <input type="checkbox" id="enableSchedule">
-                            Activer la sauvegarde automatique
+                        <span data-i18n="enableSchedule">Activer la planification</span>
                         </label>
                         <div id="scheduleSettings" class="hidden">
                             <select id="scheduleFrequency">
-                                <option value="daily">Quotidien</option>
-                                <option value="weekly">Hebdomadaire</option>
+                            <option value="daily" data-i18n="daily">Quotidien</option>
+                            <option value="weekly" data-i18n="weekly">Hebdomadaire</option>
+                        </select>
+                        <select id="scheduleDay" class="hidden">
+                            <option value="1" data-i18n="monday">Lundi</option>
+                            <option value="2" data-i18n="tuesday">Mardi</option>
+                            <option value="3" data-i18n="wednesday">Mercredi</option>
+                            <option value="4" data-i18n="thursday">Jeudi</option>
+                            <option value="5" data-i18n="friday">Vendredi</option>
+                            <option value="6" data-i18n="saturday">Samedi</option>
+                            <option value="0" data-i18n="sunday">Dimanche</option>
+                        </select>
+                        <select id="scheduleTimeHour">
+                            <option value="00">00</option>
+                            <option value="01">01</option>
+                            <option value="02">02</option>
+                            <option value="03">03</option>
+                            <option value="04">04</option>
+                            <option value="05">05</option>
+                            <option value="06">06</option>
+                            <option value="07">07</option>
+                            <option value="08">08</option>
+                            <option value="09">09</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                            <option value="21">21</option>
+                            <option value="22">22</option>
+                            <option value="23">23</option>
+                        </select>
+                        <select id="scheduleTimeMinute">
+                            <option value="00">00</option>
+                            <option value="01">01</option>
+                            <option value="02">02</option>
+                            <option value="03">03</option>
+                            <option value="04">04</option>
+                            <option value="05">05</option>
+                            <option value="06">06</option>
+                            <option value="07">07</option>
+                            <option value="08">08</option>
+                            <option value="09">09</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                            <option value="21">21</option>
+                            <option value="22">22</option>
+                            <option value="23">23</option>
+                            <option value="24">24</option>
+                            <option value="25">25</option>
+                            <option value="26">26</option>
+                            <option value="27">27</option>
+                            <option value="28">28</option>
+                            <option value="29">29</option>
+                            <option value="30">30</option>
+                            <option value="31">31</option>
+                            <option value="32">32</option>
+                            <option value="33">33</option>
+                            <option value="34">34</option>
+                            <option value="35">35</option>
+                            <option value="36">36</option>
+                            <option value="37">37</option>
+                            <option value="38">38</option>
+                            <option value="39">39</option>
+                            <option value="40">40</option>
+                            <option value="41">41</option>
+                            <option value="42">42</option>
+                            <option value="43">43</option>
+                            <option value="44">44</option>
+                            <option value="45">45</option>
+                            <option value="46">46</option>
+                            <option value="47">47</option>
+                            <option value="48">48</option>
+                            <option value="49">49</option>
+                            <option value="50">50</option>
+                            <option value="51">51</option>
+                            <option value="52">52</option>
+                            <option value="53">53</option>
+                            <option value="54">54</option>
+                            <option value="55">55</option>
+                            <option value="56">56</option>
+                            <option value="57">57</option>
+                            <option value="58">58</option>
+                            <option value="59">59</option>
                             </select>
-                            <select id="scheduleDay" class="hidden">
-                                <option value="1">Lundi</option>
-                                <option value="2">Mardi</option>
-                                <option value="3">Mercredi</option>
-                                <option value="4">Jeudi</option>
-                                <option value="5">Vendredi</option>
-                                <option value="6">Samedi</option>
-                                <option value="0">Dimanche</option>
-                            </select>
-                            <select id="scheduleTimeHour">
-                                <option value="00">00</option>
-                                <option value="01">01</option>
-                                <option value="02">02</option>
-                                <option value="03">03</option>
-                                <option value="04">04</option>
-                                <option value="05">05</option>
-                                <option value="06">06</option>
-                                <option value="07">07</option>
-                                <option value="08">08</option>
-                                <option value="09">09</option>
-                                <option value="10">10</option>
-                                <option value="11">11</option>
-                                <option value="12">12</option>
-                                <option value="13">13</option>
-                                <option value="14">14</option>
-                                <option value="15">15</option>
-                                <option value="16">16</option>
-                                <option value="17">17</option>
-                                <option value="18">18</option>
-                                <option value="19">19</option>
-                                <option value="20">20</option>
-                                <option value="21">21</option>
-                                <option value="22">22</option>
-                                <option value="23">23</option>
-                            </select>
-                            <select id="scheduleTimeMinute">
-                                <option value="00">00</option>
-                                <option value="01">01</option>
-                                <option value="02">02</option>
-                                <option value="03">03</option>
-                                <option value="04">04</option>
-                                <option value="05">05</option>
-                                <option value="06">06</option>
-                                <option value="07">07</option>
-                                <option value="08">08</option>
-                                <option value="09">09</option>
-                                <option value="10">10</option>
-                                <option value="11">11</option>
-                                <option value="12">12</option>
-                                <option value="13">13</option>
-                                <option value="14">14</option>
-                                <option value="15">15</option>
-                                <option value="16">16</option>
-                                <option value="17">17</option>
-                                <option value="18">18</option>
-                                <option value="19">19</option>
-                                <option value="20">20</option>
-                                <option value="21">21</option>
-                                <option value="22">22</option>
-                                <option value="23">23</option>
-                                <option value="24">24</option>
-                                <option value="25">25</option>
-                                <option value="26">26</option>
-                                <option value="27">27</option>
-                                <option value="28">28</option>
-                                <option value="29">29</option>
-                                <option value="30">30</option>
-                                <option value="31">31</option>
-                                <option value="32">32</option>
-                                <option value="33">33</option>
-                                <option value="34">34</option>
-                                <option value="35">35</option>
-                                <option value="36">36</option>
-                                <option value="37">37</option>
-                                <option value="38">38</option>
-                                <option value="39">39</option>
-                                <option value="40">40</option>
-                                <option value="41">41</option>
-                                <option value="42">42</option>
-                                <option value="43">43</option>
-                                <option value="44">44</option>
-                                <option value="45">45</option>
-                                <option value="46">46</option>
-                                <option value="47">47</option>
-                                <option value="48">48</option>
-                                <option value="49">49</option>
-                                <option value="50">50</option>
-                                <option value="51">51</option>
-                                <option value="52">52</option>
-                                <option value="53">53</option>
-                                <option value="54">54</option>
-                                <option value="55">55</option>
-                                <option value="56">56</option>
-                                <option value="57">57</option>
-                                <option value="58">58</option>
-                                <option value="59">59</option>
-                            </select>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="status-panel">
-            <h3>Statut</h3>
-            <div id="statusMessage">Prêt</div>
+            <h3 data-i18n="status">Statut</h3>
+            <div id="statusMessage" data-i18n="ready">Prêt</div>
             <div id="progressBar" class="hidden">
                 <div class="progress"></div>
             </div>
 
             <div id="backupList" class="backup-list" style="display: none;">
-                <h2>Liste des sauvegardes</h2>
+                <h2 data-i18n="backupList">Liste des sauvegardes</h2>
+                <div class="backup-actions">
+                    <button id="selectBackupBtn" class="primary-button" data-i18n="selectBackup">
+                        <i class="fas fa-folder-open"></i> Sélectionner une sauvegarde
+                    </button>
+                </div>
                 <div id="backupItems" class="backup-items"></div>
             </div>
         </div>
@@ -215,24 +218,27 @@
     <div id="optionsModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Options</h2>
+                <h2 data-i18n="options">Options</h2>
                 <button class="close-button">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="option-group">
-                    <h3>Lancement</h3>
+                    <h3 data-i18n="launch">Lancement</h3>
                     <label for="autoLaunch">
-                        <input type="checkbox" id="autoLaunch"> Lancer BackupQuest au démarrage de l'ordinateur
+                        <input type="checkbox" id="autoLaunch">
+                        <span data-i18n="autoLaunch">Lancer BackupQuest au démarrage de l'ordinateur</span>
                     </label>
                     <label for="minimizeToTray">
-                        <input type="checkbox" id="minimizeToTray"> Minimiser dans le tray à la fermeture
+                        <input type="checkbox" id="minimizeToTray">
+                        <span data-i18n="minimizeToTray">Minimiser dans le tray à la fermeture</span>
                     </label>
                 </div>
 
                 <div class="option-group">
-                    <h3>Sauvegardes</h3>
+                    <h3 data-i18n="backups">Sauvegardes</h3>
                     <label for="limitBackups">
-                        <input type="checkbox" id="limitBackups"> Limiter le nombre de sauvegardes à conserver :
+                        <input type="checkbox" id="limitBackups">
+                        <span data-i18n="limitBackups">Limiter le nombre de sauvegardes à conserver</span>
                         <select id="backupLimitCount" disabled>
                             <option value="1">1</option>
                             <option value="2">2</option>
@@ -253,7 +259,15 @@
                 </div>
 
                 <div class="option-group">
-                    <button id="googleLogoutButton" class="secondary-button">
+                    <h3 data-i18n="language">Langue</h3>
+                    <select id="languageSelect">
+                        <option value="fr" data-i18n="french">Français</option>
+                        <option value="en" data-i18n="english">Anglais</option>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <button id="googleLogoutButton" class="secondary-button" data-i18n="logoutGoogle">
                          <i class="fas fa-sign-out-alt"></i> Se déconnecter de Google Drive
                     </button>
                 </div>

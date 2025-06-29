@@ -644,3 +644,25 @@ button:not(.control-button) i {
 #optionsModal .close-button:hover {
     color: var(--error-color);
 }
+
+/* Language Selector */
+#languageSelect {
+    background: #23272f;
+    border: 1px solid #4b5563;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    min-width: 120px;
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+
+#languageSelect:focus {
+    border-color: #ffd700;
+    outline: none;
+}
+
+#languageSelect option {
+    background: #23272f;
+    color: #fff;
+}

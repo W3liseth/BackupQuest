@@ -32,12 +32,17 @@
     "node-schedule": "^2.1.1"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
+    "cross-env-shell": "^1.1.2",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1"
   },
   "build": {
     "appId": "com.backupquest.app",
     "productName": "BackupQuest",
+    "extraFiles": [
+      ".env"
+    ],
     "directories": {
       "output": "dist"
     },

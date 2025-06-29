@@ -4,6 +4,8 @@ const ElectronStore = require('electron-store');
 const backupManager = require('../utils/backup');
 const googleAuth = require('../utils/googleAuth');
 const autoLaunch = require('auto-launch');
+const i18n = require('../renderer/i18n'); // Ajuster le chemin
+const dotenv = require('dotenv');
 
 // Vérifier si une instance est déjà en cours d'exécution
 const gotTheLock = app.requestSingleInstanceLock();

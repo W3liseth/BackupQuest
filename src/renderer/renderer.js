@@ -1,12 +1,13 @@
 const { ipcRenderer } = require('electron');
 const ElectronStore = require('electron-store');
 const store = new ElectronStore();
+const i18n = require('./i18n');
 
 // Éléments DOM
 const wowPathInput = document.getElementById('wowPath');
 const backupPathInput = document.getElementById('backupPath');
 const gameVersionSelect = document.getElementById('gameVersion');
-const backupTypeSelect = document.getElementById('backupTypeSelect');
+const backupTypeSelect = document.getElementById('backupType');
 const localBackupSettings = document.getElementById('localBackupSettings');
 const backupNowButton = document.getElementById('backupNow');
 const restoreBackupButton = document.getElementById('restoreBackup');
@@ -19,6 +20,7 @@ const scheduleDaySelect = document.getElementById('scheduleDay');
 const statusMessage = document.getElementById('statusMessage');
 const progressBar = document.getElementById('progressBar');
 const progressElement = progressBar.querySelector('.progress');
+const backupList = document.getElementById('backupList');
 
 // Option elements (Declared here, initialized later)
 let optionsModal;
@@ -91,6 +93,13 @@ async function loadSavedSettings() {
 
     autoLaunchCheckbox.checked = savedAutoLaunch;
     minimizeToTrayCheckbox.checked = savedMinimizeToTray;
+
+    if (enableScheduleCheckbox.checked) {
+        const savedSchedule = store.get('schedule');
+        if (savedSchedule) {
+            ipcRenderer.invoke('set-schedule', savedSchedule);
+        }
+    }
 }
 
 // Gestionnaires d'événements
@@ -168,8 +177,8 @@ async function authenticateGoogle() {
             validateButton.addEventListener('click', () => {
                 const code = authCodeInput.value.trim();
                 if (code) {
-                    document.body.removeChild(dialog);
-                    resolve(code);
+                document.body.removeChild(dialog);
+                resolve(code);
                 } else {
                     alert('Veuillez entrer le code d\'autorisation');
                 }
@@ -205,9 +214,9 @@ async function authenticateGoogle() {
         if (code) {
             try {
                 console.log('Attempting to validate Google Drive authentication code...');
-                await ipcRenderer.invoke('validate-google-auth', code);
+            await ipcRenderer.invoke('validate-google-auth', code);
                 console.log('Google Drive authentication successful!');
-                statusMessage.textContent = 'Authentification Google Drive réussie !';
+            statusMessage.textContent = 'Authentification Google Drive réussie !';
                 await updateGoogleButtonText(); // Mettre à jour le texte du bouton après l'authentification
             } catch (error) {
                 console.error('Error validating authentication code:', error);
@@ -686,6 +695,22 @@ loadSavedSettings();
         console.log('backupLimitCountSelect change listener attached.');
     } else {
         console.warn('Warning: backupLimitCountSelect not found, cannot attach change listener.');
+    }
+
+    // Gestionnaire pour le changement de langue
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        // Définir la langue actuelle
+        const savedLanguage = store.get('language') || 'fr';
+        languageSelect.value = savedLanguage;
+        i18n.setLanguage(savedLanguage);
+
+        // Écouter les changements de langue
+        languageSelect.addEventListener('change', () => {
+            const newLanguage = languageSelect.value;
+            i18n.setLanguage(newLanguage);
+            store.set('language', newLanguage);
+        });
     }
 });
 

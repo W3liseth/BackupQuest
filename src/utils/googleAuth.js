@@ -14,6 +14,23 @@ const store = new Store();
 
 class GoogleAuth {
     constructor() {
+        // Log pour debug des variables d'environnement
+        console.log('GoogleAuth constructor - Environment variables:');
+        console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID || 'UNDEFINED');
+        console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'UNDEFINED');
+        console.log('GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI || 'UNDEFINED');
+
+        // Vérifier que les variables requises sont présentes
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            throw new Error('GOOGLE_CLIENT_ID is not defined in environment variables');
+        }
+        if (!process.env.GOOGLE_CLIENT_SECRET) {
+            throw new Error('GOOGLE_CLIENT_SECRET is not defined in environment variables');
+        }
+        if (!process.env.GOOGLE_REDIRECT_URI) {
+            throw new Error('GOOGLE_REDIRECT_URI is not defined in environment variables');
+        }
+
         this.oauth2Client = new OAuth2Client(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
@@ -29,10 +46,16 @@ class GoogleAuth {
 
     async authenticate() {
         try {
+            console.log('Generating auth URL with:');
+            console.log('- Client ID:', process.env.GOOGLE_CLIENT_ID);
+            console.log('- Redirect URI:', process.env.GOOGLE_REDIRECT_URI);
+            
             const authUrl = this.oauth2Client.generateAuthUrl({
             access_type: 'offline',
                 scope: ['https://www.googleapis.com/auth/drive.file']
             });
+
+            console.log('Generated auth URL:', authUrl);
 
             // Retourner l'URL d'authentification
             return authUrl;
