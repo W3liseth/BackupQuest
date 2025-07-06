@@ -353,8 +353,8 @@ class BackupManager {
     async restoreBackup(options, progressCallback) {
         const { backupPath, wowPath, gameVersion, backupType } = options;
         
-        // Créer un dossier temporaire pour l'extraction
-        const tempDir = path.join(path.dirname(backupPath), 'temp_restore');
+        // Créer un dossier temporaire pour l'extraction dans un emplacement sûr
+        const tempDir = path.join(os.tmpdir(), 'BackupQuest', 'temp_restore');
         await fs.ensureDir(tempDir);
         
         try {

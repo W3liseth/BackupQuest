@@ -1,8 +1,8 @@
 {
   "name": "backupquest",
   "productName": "BackupQuest",
-  "version": "1.0.0",
-  "description": "World of Warcraft Backup Manager",
+  "version": "1.0.1",
+  "description": "World of Warcraft Addon Backup Manager",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
@@ -16,6 +16,12 @@
     "electron",
     "gaming"
   ],
+  "extraFiles": [
+  {
+    "from": ".env",
+    "to": "."
+  }
+],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -24,6 +30,7 @@
     "auto-launch": "^5.0.5",
     "dotenv": "^16.5.0",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.6.2",
     "extract-zip": "^2.0.1",
     "fs-extra": "^11.2.0",
     "google-auth-library": "^9.6.1",
@@ -33,7 +40,6 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "cross-env-shell": "^1.1.2",
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1"
   },
@@ -46,6 +52,11 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [{
+      "provider": "github",
+      "owner": "W3liseth",
+      "repo": "BackupQuest"
+    }],
     "win": {
       "target": [
         {

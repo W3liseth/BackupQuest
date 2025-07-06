@@ -6,6 +6,7 @@ const googleAuth = require('../utils/googleAuth');
 const autoLaunch = require('auto-launch');
 const i18n = require('../renderer/i18n'); // Ajuster le chemin
 const dotenv = require('dotenv');
+const { autoUpdater } = require('electron-updater');
 
 // Vérifier si une instance est déjà en cours d'exécution
 const gotTheLock = app.requestSingleInstanceLock();
@@ -124,9 +125,35 @@ function createWindow() {
   createTray();
 }
 
+// --- Auto Updater ---
+function setupAutoUpdater() {
+  // Configuration pour GitHub Releases (par défaut, electron-updater détecte le repo depuis package.json)
+  autoUpdater.autoDownload = false; // On demande à l'utilisateur avant de télécharger
+
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow.webContents.send('update-message', 'Vérification des mises à jour...');
+  });
+  autoUpdater.on('update-available', (info) => {
+    mainWindow.webContents.send('update-available', info);
+  });
+  autoUpdater.on('update-not-available', () => {
+    mainWindow.webContents.send('update-message', 'Aucune mise à jour disponible.');
+  });
+  autoUpdater.on('error', (err) => {
+    mainWindow.webContents.send('update-message', `Erreur de mise à jour : ${err == null ? 'inconnue' : err.message}`);
+  });
+  autoUpdater.on('download-progress', (progressObj) => {
+    mainWindow.webContents.send('update-download-progress', progressObj);
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow.webContents.send('update-downloaded', info);
+  });
+}
+
 app.whenReady().then(() => {
   console.log('Application ready');
   createWindow();
+  setupAutoUpdater();
 
   // Handle minimize to tray on close
   mainWindow.on('close', (event) => {
@@ -369,4 +396,15 @@ ipcMain.handle('set-options', async (event, options) => {
     store.set('limitBackups', options.limitBackups);
     store.set('backupLimitCount', options.backupLimitCount);
     console.log('Options saved to store.');
+});
+
+// IPC pour déclencher la vérification et le téléchargement
+ipcMain.handle('check-for-update', async () => {
+  autoUpdater.checkForUpdates();
+});
+ipcMain.handle('download-update', async () => {
+  autoUpdater.downloadUpdate();
+});
+ipcMain.handle('quit-and-install', () => {
+  autoUpdater.quitAndInstall();
 });

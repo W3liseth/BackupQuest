@@ -666,3 +666,53 @@ button:not(.control-button) i {
     background: #23272f;
     color: #fff;
 }
+
+#update-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.update-modal-content {
+    background: var(--panel-color) !important;
+    color: var(--text-color) !important;
+    padding: 32px 24px;
+    border-radius: 10px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+    min-width: 320px;
+    max-width: 90vw;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+#update-modal button {
+    margin: 8px 6px;
+    padding: 8px 18px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background: var(--background-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    font-weight: 500;
+}
+#update-modal button.primary-button {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+}
+#update-modal button.primary-button:hover {
+    background: #c0392b;
+    color: #fff;
+}
+#update-modal button:hover {
+    background: var(--hover-color);
+    color: var(--primary-color);
+}
+#update-progress-bar {
+    width: 200px;
+    margin: 10px 0;
+}

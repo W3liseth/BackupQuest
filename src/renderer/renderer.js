@@ -2,6 +2,7 @@ const { ipcRenderer } = require('electron');
 const ElectronStore = require('electron-store');
 const store = new ElectronStore();
 const i18n = require('./i18n');
+const UpdateModal = require('./components/UpdateModal');
 
 // Éléments DOM
 const wowPathInput = document.getElementById('wowPath');
@@ -711,6 +712,14 @@ loadSavedSettings();
             i18n.setLanguage(newLanguage);
             store.set('language', newLanguage);
         });
+    }
+
+    // Initialisation du modal de mise à jour
+    const updateModal = new UpdateModal();
+    // Optionnel : bouton/menu pour ouvrir le modal manuellement
+    const updateBtn = document.getElementById('openUpdateModal');
+    if (updateBtn) {
+        updateBtn.onclick = () => updateModal.show();
     }
 });
 
