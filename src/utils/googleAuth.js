@@ -20,6 +20,15 @@ class GoogleAuth {
         console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'UNDEFINED');
         console.log('GOOGLE_REDIRECT_URI:', process.env.GOOGLE_REDIRECT_URI || 'UNDEFINED');
 
+        this.oauth2Client = null;
+        this.initialized = false;
+    }
+
+    async initialize() {
+        if (this.initialized) {
+            return;
+        }
+
         // Vérifier que les variables requises sont présentes
         if (!process.env.GOOGLE_CLIENT_ID) {
             throw new Error('GOOGLE_CLIENT_ID is not defined in environment variables');
@@ -42,9 +51,13 @@ class GoogleAuth {
         if (savedTokens) {
             this.oauth2Client.setCredentials(savedTokens);
         }
+
+        this.initialized = true;
     }
 
     async authenticate() {
+        await this.initialize();
+        
         try {
             console.log('Generating auth URL with:');
             console.log('- Client ID:', process.env.GOOGLE_CLIENT_ID);
@@ -66,6 +79,8 @@ class GoogleAuth {
     }
 
     async handleAuthCode(code) {
+        await this.initialize();
+        
         try {
             const { tokens } = await this.oauth2Client.getToken(code);
             this.oauth2Client.setCredentials(tokens);
@@ -81,6 +96,10 @@ class GoogleAuth {
     }
 
     async isAuthenticated() {
+        if (!this.initialized) {
+            return false;
+        }
+        
         try {
             const tokens = this.oauth2Client.credentials;
             if (!tokens || !tokens.access_token) {
@@ -104,7 +123,7 @@ class GoogleAuth {
             return true;
         } catch (error) {
             console.error('Error checking authentication:', error);
-                return false;
+            return false;
         }
     }
 
@@ -200,6 +219,13 @@ class GoogleAuth {
     async logout() {
         try {
             console.log('Attempting Google Drive logout...');
+            
+            if (!this.initialized || !this.oauth2Client) {
+                console.log('Google Auth not initialized, clearing local tokens only.');
+                store.delete('googleTokens');
+                return;
+            }
+            
             // Révoquer le token (si présent et valide)
             const tokens = this.oauth2Client.credentials;
             if (tokens && tokens.access_token) {
