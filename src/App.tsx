@@ -12,6 +12,8 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check as checkUpdate, type Update } from "@tauri-apps/plugin-updater";
 import {
   Archive,
   Check,
@@ -49,6 +51,7 @@ import type {
   GoogleTokenResponse,
   OAuthFlow,
   OAuthPoll,
+  UpdateState,
   View,
   WowProcessStatus,
 } from "./types";
@@ -74,6 +77,7 @@ const EMPTY_CONFIG: AppConfig = {
   cronExpression: "0 20 * * *",
   startOnLogin: false,
   closeToTray: true,
+  autoCheckUpdates: true,
   google: {
     clientId: "",
     clientSecret: "",
@@ -113,8 +117,18 @@ function App() {
   });
   const [oauthBusy, setOauthBusy] = useState(false);
   const [oauthMessage, setOauthMessage] = useState<string>("");
+  const [updateState, setUpdateState] = useState<UpdateState>({
+    status: "idle",
+    message: "Verifie les releases GitHub de BackupQuest.",
+    body: null,
+    downloadedBytes: 0,
+    contentLength: null,
+  });
+  const [pendingUpdate, setPendingUpdate] = useState<Update | null>(null);
   const configRef = useRef<AppConfig>(EMPTY_CONFIG);
   const runningBackupRef = useRef(false);
+  const updateBusyRef = useRef(false);
+  const startupUpdateCheckedRef = useRef(false);
   const lastCronKeyRef = useRef("");
   const pendingAutoBackupRef = useRef(false);
   const pendingGameClosedAtRef = useRef<number | null>(null);
@@ -158,6 +172,134 @@ function App() {
     },
     [],
   );
+
+  const checkForUpdates = useCallback(
+    async (source: "startup" | "manual" | "automatic" = "manual") => {
+      if (updateBusyRef.current) {
+        return;
+      }
+
+      updateBusyRef.current = true;
+      setPendingUpdate(null);
+      setUpdateState({
+        status: "checking",
+        message:
+          source === "startup"
+            ? "Verification obligatoire des mises a jour au demarrage..."
+            : "Recherche d'une nouvelle release GitHub...",
+        body: null,
+        downloadedBytes: 0,
+        contentLength: null,
+      });
+
+      try {
+        const update = await checkUpdate({ timeout: 30_000 });
+        if (!update) {
+          setUpdateState({
+            status: "none",
+            message: "BackupQuest est deja a jour.",
+            body: null,
+            downloadedBytes: 0,
+            contentLength: null,
+          });
+          if (source === "manual") {
+            pushActivity("success", "BackupQuest a jour", "Aucune nouvelle release disponible.");
+          }
+          return;
+        }
+
+        setPendingUpdate(update);
+        setUpdateState({
+          status: "available",
+          message: `Version ${update.version} disponible.`,
+          body: update.body,
+          downloadedBytes: 0,
+          contentLength: null,
+        });
+        pushActivity(
+          "info",
+          "Mise a jour disponible",
+          `La version ${update.version} peut etre installee depuis Options.`,
+        );
+      } catch (error) {
+        const message = toUpdaterError(error);
+        setUpdateState({
+          status: "error",
+          message,
+          body: null,
+          downloadedBytes: 0,
+          contentLength: null,
+        });
+        pushActivity("warning", "Verification des mises a jour impossible", message);
+      } finally {
+        updateBusyRef.current = false;
+      }
+    },
+    [pushActivity],
+  );
+
+  const installUpdate = useCallback(async () => {
+    if (!pendingUpdate || updateBusyRef.current) {
+      return;
+    }
+
+    updateBusyRef.current = true;
+    let downloaded = 0;
+    setUpdateState((current) => ({
+      ...current,
+      status: "downloading",
+      message: `Telechargement de la version ${pendingUpdate.version}...`,
+      downloadedBytes: 0,
+      contentLength: null,
+    }));
+
+    try {
+      await pendingUpdate.downloadAndInstall((event) => {
+        if (event.event === "Started") {
+          downloaded = 0;
+          setUpdateState((current) => ({
+            ...current,
+            downloadedBytes: 0,
+            contentLength: event.data.contentLength ?? null,
+          }));
+          return;
+        }
+
+        if (event.event === "Progress") {
+          downloaded += event.data.chunkLength;
+          setUpdateState((current) => ({
+            ...current,
+            downloadedBytes: downloaded,
+          }));
+          return;
+        }
+
+        setUpdateState((current) => ({
+          ...current,
+          status: "installed",
+          message: "Mise a jour installee. Redemarrage de BackupQuest...",
+        }));
+      });
+
+      setUpdateState((current) => ({
+        ...current,
+        status: "installed",
+        message: "Mise a jour installee. Redemarrage de BackupQuest...",
+      }));
+      pushActivity("success", "Mise a jour installee", "BackupQuest va redemarrer.");
+      await relaunch();
+    } catch (error) {
+      const message = toUpdaterError(error);
+      setUpdateState((current) => ({
+        ...current,
+        status: "error",
+        message,
+      }));
+      pushActivity("error", "Installation de la mise a jour impossible", message);
+    } finally {
+      updateBusyRef.current = false;
+    }
+  }, [pendingUpdate, pushActivity]);
 
   const persistConfig = useCallback(
     async (nextConfig: AppConfig) => {
@@ -341,6 +483,27 @@ function App() {
   useEffect(() => {
     configRef.current = config;
   }, [config]);
+
+  useEffect(() => {
+    if (loading || startupUpdateCheckedRef.current) {
+      return;
+    }
+
+    startupUpdateCheckedRef.current = true;
+    void checkForUpdates("startup");
+  }, [checkForUpdates, loading]);
+
+  useEffect(() => {
+    if (loading || !config.autoCheckUpdates) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void checkForUpdates("automatic");
+    }, 6 * 60 * 60 * 1_000);
+
+    return () => window.clearInterval(timer);
+  }, [checkForUpdates, config.autoCheckUpdates, loading]);
 
   useEffect(() => {
     if (loading) {
@@ -981,8 +1144,14 @@ function App() {
                 oauthMessage={oauthMessage}
                 onConnectGoogle={() => void connectGoogle()}
                 onDisconnectGoogle={() => void disconnectGoogle()}
+                onCheckForUpdates={() => void checkForUpdates("manual")}
+                onInstallUpdate={() => void installUpdate()}
+                onSetAutoCheckUpdates={(autoCheckUpdates) =>
+                  void updateConfig({ autoCheckUpdates })
+                }
                 onSetCloseToTray={(closeToTray) => void updateConfig({ closeToTray })}
                 onSetStartOnLogin={(startOnLogin) => void setStartOnLogin(startOnLogin)}
+                updateState={updateState}
               />
             )}
           </div>
@@ -1349,6 +1518,10 @@ function normalizeConfig(config: AppConfig): AppConfig {
       typeof config.closeToTray === "boolean"
         ? config.closeToTray
         : EMPTY_CONFIG.closeToTray,
+    autoCheckUpdates:
+      typeof config.autoCheckUpdates === "boolean"
+        ? config.autoCheckUpdates
+        : EMPTY_CONFIG.autoCheckUpdates,
     google: {
       ...EMPTY_CONFIG.google,
       ...config.google,
@@ -1447,6 +1620,14 @@ function toErrorMessage(error: unknown) {
     return error;
   }
   return "Erreur inconnue.";
+}
+
+function toUpdaterError(error: unknown) {
+  const message = toErrorMessage(error);
+  if (message.includes("Could not fetch a valid release JSON")) {
+    return "Manifest latest.json introuvable ou invalide sur GitHub. Publie une nouvelle release avec le workflow mis a jour.";
+  }
+  return message;
 }
 
 function isGoogleUnauthorizedError(error: unknown) {

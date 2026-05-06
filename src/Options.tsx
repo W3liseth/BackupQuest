@@ -1,6 +1,3 @@
-import { useMemo, useState } from "react";
-import { relaunch } from "@tauri-apps/plugin-process";
-import { check, type Update } from "@tauri-apps/plugin-updater";
 import {
   CheckCircle2,
   Cloud,
@@ -13,25 +10,31 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { AppConfig } from "./types";
+import type { AppConfig, UpdateState, UpdateStatus } from "./types";
 import { ToggleOption } from "./viewShared";
-
-type UpdateStatus = "idle" | "checking" | "available" | "none" | "downloading" | "installed" | "error";
 
 export function OptionsView({
   config,
   oauthBusy,
   oauthMessage,
+  updateState,
+  onCheckForUpdates,
   onConnectGoogle,
   onDisconnectGoogle,
+  onInstallUpdate,
+  onSetAutoCheckUpdates,
   onSetCloseToTray,
   onSetStartOnLogin,
 }: {
   config: AppConfig;
   oauthBusy: boolean;
   oauthMessage: string;
+  updateState: UpdateState;
+  onCheckForUpdates: () => void;
   onConnectGoogle: () => void;
   onDisconnectGoogle: () => void;
+  onInstallUpdate: () => void;
+  onSetAutoCheckUpdates: (enabled: boolean) => void;
   onSetCloseToTray: (enabled: boolean) => void;
   onSetStartOnLogin: (enabled: boolean) => void;
 }) {
@@ -58,7 +61,13 @@ export function OptionsView({
         </div>
       </section>
 
-      <UpdaterPanel />
+      <UpdaterPanel
+        autoCheckUpdates={config.autoCheckUpdates}
+        onCheckForUpdates={onCheckForUpdates}
+        onInstallUpdate={onInstallUpdate}
+        onSetAutoCheckUpdates={onSetAutoCheckUpdates}
+        updateState={updateState}
+      />
 
       <section className="rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] p-5 shadow-sm">
         <h2 className="text-lg font-semibold">Authentification Google</h2>
@@ -76,85 +85,22 @@ export function OptionsView({
   );
 }
 
-function UpdaterPanel() {
-  const [status, setStatus] = useState<UpdateStatus>("idle");
-  const [message, setMessage] = useState("Verifie les releases GitHub de BackupQuest.");
-  const [pendingUpdate, setPendingUpdate] = useState<Update | null>(null);
-  const [downloadedBytes, setDownloadedBytes] = useState(0);
-  const [contentLength, setContentLength] = useState<number | null>(null);
-
-  const percent = useMemo(() => {
-    if (!contentLength || contentLength <= 0) {
-      return status === "installed" ? 100 : 0;
-    }
-    return Math.max(0, Math.min(100, Math.round((downloadedBytes / contentLength) * 100)));
-  }, [contentLength, downloadedBytes, status]);
-
-  const checkForUpdate = async () => {
-    setStatus("checking");
-    setMessage("Recherche d'une nouvelle release GitHub...");
-    setPendingUpdate(null);
-    setDownloadedBytes(0);
-    setContentLength(null);
-
-    try {
-      const update = await check({ timeout: 30_000 });
-      if (!update) {
-        setStatus("none");
-        setMessage("BackupQuest est deja a jour.");
-        return;
-      }
-
-      setPendingUpdate(update);
-      setStatus("available");
-      setMessage(`Version ${update.version} disponible.`);
-    } catch (error) {
-      setStatus("error");
-      setMessage(toUpdaterError(error));
-    }
-  };
-
-  const installUpdate = async () => {
-    if (!pendingUpdate) {
-      return;
-    }
-
-    let downloaded = 0;
-    setStatus("downloading");
-    setMessage(`Telechargement de la version ${pendingUpdate.version}...`);
-    setDownloadedBytes(0);
-    setContentLength(null);
-
-    try {
-      await pendingUpdate.downloadAndInstall((event) => {
-        if (event.event === "Started") {
-          downloaded = 0;
-          setDownloadedBytes(0);
-          setContentLength(event.data.contentLength ?? null);
-          return;
-        }
-
-        if (event.event === "Progress") {
-          downloaded += event.data.chunkLength;
-          setDownloadedBytes(downloaded);
-          return;
-        }
-
-        setStatus("installed");
-        setMessage("Mise a jour installee. Redemarrage de BackupQuest...");
-      });
-
-      setStatus("installed");
-      setMessage("Mise a jour installee. Redemarrage de BackupQuest...");
-      await relaunch();
-    } catch (error) {
-      setStatus("error");
-      setMessage(toUpdaterError(error));
-    }
-  };
-
-  const busy = status === "checking" || status === "downloading";
-  const hasUpdate = status === "available" && pendingUpdate;
+function UpdaterPanel({
+  autoCheckUpdates,
+  updateState,
+  onCheckForUpdates,
+  onInstallUpdate,
+  onSetAutoCheckUpdates,
+}: {
+  autoCheckUpdates: boolean;
+  updateState: UpdateState;
+  onCheckForUpdates: () => void;
+  onInstallUpdate: () => void;
+  onSetAutoCheckUpdates: (enabled: boolean) => void;
+}) {
+  const percent = updatePercent(updateState);
+  const busy = updateState.status === "checking" || updateState.status === "downloading";
+  const hasUpdate = updateState.status === "available";
 
   return (
     <section className="rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] p-5 shadow-sm">
@@ -162,40 +108,50 @@ function UpdaterPanel() {
         <div>
           <h2 className="text-lg font-semibold">Mises a jour</h2>
           <p className="mt-2 text-sm text-[#a3a3a3]">
-            BackupQuest peut installer automatiquement une nouvelle release publiee sur GitHub.
+            BackupQuest verifie toujours les mises a jour au demarrage et peut continuer a les
+            surveiller pendant que l'application reste ouverte.
           </p>
         </div>
         <Rocket className="size-5 shrink-0 text-[#ffffff]" />
       </div>
 
+      <div className="mt-4">
+        <ToggleOption
+          active={autoCheckUpdates}
+          icon={RefreshCw}
+          label="Verifier automatiquement"
+          onClick={() => onSetAutoCheckUpdates(!autoCheckUpdates)}
+        />
+      </div>
+
       <div className="mt-4 rounded-md border border-[#2f2f2f] bg-[#111111] p-3">
         <div className="flex items-center gap-2 text-sm font-medium">
-          {status === "none" || status === "installed" ? (
+          {updateState.status === "none" || updateState.status === "installed" ? (
             <CheckCircle2 className="size-4 text-[#86efac]" />
-          ) : status === "checking" || status === "downloading" ? (
+          ) : updateState.status === "checking" || updateState.status === "downloading" ? (
             <Loader2 className="size-4 animate-spin text-[#ffffff]" />
           ) : (
             <RefreshCw className="size-4 text-[#ffffff]" />
           )}
-          <span>{statusLabel(status)}</span>
+          <span>{statusLabel(updateState.status)}</span>
         </div>
-        <p className="mt-2 text-sm text-[#a3a3a3]">{message}</p>
-        {pendingUpdate?.body && (
-          <p className="mt-3 max-h-24 overflow-y-auto whitespace-pre-wrap rounded-md bg-[#050505] p-3 text-xs text-[#c7c7c7]">
-            {pendingUpdate.body}
+        <p className="mt-2 text-sm text-[#a3a3a3]">{updateState.message}</p>
+        {updateState.body && (
+          <p className="backupquest-scroll mt-3 max-h-24 overflow-y-auto whitespace-pre-wrap rounded-md bg-[#050505] p-3 text-xs text-[#c7c7c7]">
+            {updateState.body}
           </p>
         )}
 
-        {status === "downloading" && (
+        {updateState.status === "downloading" && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-[#a3a3a3]">
               <span>Telechargement</span>
-              <span>{contentLength ? `${percent}%` : "En cours"}</span>
+              <span>{updateState.contentLength ? `${percent}%` : "En cours"}</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1f1f1f]">
               <div
                 className="h-full rounded-full bg-[#ffffff] transition-all duration-300"
-                style={{ width: `${contentLength ? percent : 35}%` }}
+                style={{ width: `${updateState.contentLength ? percent : 35}%` }}
               />
             </div>
           </div>
@@ -206,10 +162,10 @@ function UpdaterPanel() {
         <Button
           className="bg-[#ffffff] text-[#030303] hover:bg-[#e5e5e5]"
           disabled={busy}
-          onClick={() => void checkForUpdate()}
+          onClick={onCheckForUpdates}
           type="button"
         >
-          {status === "checking" ? (
+          {updateState.status === "checking" ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <RefreshCw className="size-4" />
@@ -220,10 +176,10 @@ function UpdaterPanel() {
         <Button
           className="bg-[#ffffff] text-[#030303] hover:bg-[#e5e5e5]"
           disabled={!hasUpdate || busy}
-          onClick={() => void installUpdate()}
+          onClick={onInstallUpdate}
           type="button"
         >
-          {status === "downloading" ? (
+          {updateState.status === "downloading" ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
             <Download className="size-4" />
@@ -257,14 +213,14 @@ function statusLabel(status: UpdateStatus) {
   return "Pret";
 }
 
-function toUpdaterError(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
+function updatePercent(updateState: UpdateState) {
+  if (!updateState.contentLength || updateState.contentLength <= 0) {
+    return updateState.status === "installed" ? 100 : 0;
   }
-  if (typeof error === "string") {
-    return error;
-  }
-  return "Recherche de mise a jour impossible.";
+  return Math.max(
+    0,
+    Math.min(100, Math.round((updateState.downloadedBytes / updateState.contentLength) * 100)),
+  );
 }
 
 function GoogleDrivePanel({

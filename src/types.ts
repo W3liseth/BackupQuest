@@ -23,7 +23,25 @@ export type AppConfig = {
   cronExpression: string;
   startOnLogin: boolean;
   closeToTray: boolean;
+  autoCheckUpdates: boolean;
   google: GoogleDriveConfig;
+};
+
+export type UpdateStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "none"
+  | "downloading"
+  | "installed"
+  | "error";
+
+export type UpdateState = {
+  status: UpdateStatus;
+  message: string;
+  body?: string | null;
+  downloadedBytes: number;
+  contentLength?: number | null;
 };
 
 export type CandidateGameDir = {

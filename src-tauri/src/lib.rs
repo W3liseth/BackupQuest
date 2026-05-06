@@ -98,6 +98,8 @@ struct AppConfig {
     start_on_login: bool,
     #[serde(default = "default_true")]
     close_to_tray: bool,
+    #[serde(default = "default_true")]
+    auto_check_updates: bool,
     google: GoogleDriveConfig,
 }
 
@@ -115,6 +117,7 @@ impl Default for AppConfig {
             cron_expression: "0 20 * * *".to_string(),
             start_on_login: false,
             close_to_tray: true,
+            auto_check_updates: true,
             google: GoogleDriveConfig {
                 drive_folder_name: default_drive_folder_name(),
                 ..GoogleDriveConfig::default()

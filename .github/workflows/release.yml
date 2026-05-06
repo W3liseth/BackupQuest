@@ -78,3 +78,49 @@ jobs:
           prerelease: false
           args: --bundles msi
           releaseAssetNamePattern: "[name]_[version]_[arch][ext]"
+
+      - name: Publish updater manifest
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.release.outputs.tag }}"
+          $version = $tag.TrimStart("v")
+          $bundleDir = "src-tauri/target/release/bundle/msi"
+          $msi = Get-ChildItem $bundleDir -Filter "*.msi" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+          if (-not $msi) {
+            throw "MSI introuvable dans $bundleDir."
+          }
+
+          $signaturePath = "$($msi.FullName).sig"
+          if (-not (Test-Path $signaturePath)) {
+            throw "Signature updater introuvable: $signaturePath"
+          }
+
+          $signature = (Get-Content $signaturePath -Raw).Trim()
+          if ([string]::IsNullOrWhiteSpace($signature)) {
+            throw "Signature updater vide: $signaturePath"
+          }
+
+          $assetName = "BackupQuest_${version}_x64.msi"
+          $assetUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$assetName"
+          $releaseNotes = gh release view $tag --json body --jq ".body"
+          if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
+            $releaseNotes = "Voir les notes de version sur GitHub."
+          }
+
+          $latest = [ordered]@{
+            version = $version
+            notes = $releaseNotes
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = [ordered]@{
+              "windows-x86_64" = [ordered]@{
+                signature = $signature
+                url = $assetUrl
+              }
+            }
+          }
+
+          $latest | ConvertTo-Json -Depth 10 | Set-Content latest.json -Encoding UTF8
+          gh release upload $tag latest.json --clobber
