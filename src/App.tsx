@@ -674,7 +674,7 @@ function App() {
           schedulerBusyRef.current = false;
         }
       })();
-    }, 15_000);
+    }, 5_000);
 
     return () => window.clearInterval(timer);
   });

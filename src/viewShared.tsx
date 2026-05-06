@@ -149,13 +149,15 @@ export function destinationLabel(config: AppConfig) {
 
 export function scheduleSummary(expression: string) {
   const fields = expression.trim().split(/\s+/);
+  const minute = Number(fields[0]);
   const hour = Number(fields[1]);
   const dayOfWeek = fields[4] ?? "*";
+  const safeMinute = Number.isInteger(minute) && minute >= 0 && minute <= 59 ? minute : 0;
   const safeHour = Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : 20;
-  const formattedHour = `${String(safeHour).padStart(2, "0")}:00`;
+  const formattedTime = `${String(safeHour).padStart(2, "0")}:${String(safeMinute).padStart(2, "0")}`;
 
   if (dayOfWeek === "*") {
-    return `Tous les jours à ${formattedHour}`;
+    return `Tous les jours à ${formattedTime}`;
   }
 
   const days = dayOfWeek
@@ -164,7 +166,7 @@ export function scheduleSummary(expression: string) {
     .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6);
 
   if (days.length === 0) {
-    return `Chaque lundi à ${formattedHour}`;
+    return `Chaque lundi à ${formattedTime}`;
   }
 
   const labels = [
@@ -179,5 +181,5 @@ export function scheduleSummary(expression: string) {
     .filter((day) => days.includes(day.value))
     .map((day) => day.label);
 
-  return `${labels.join(", ")} à ${formattedHour}`;
+  return `${labels.join(", ")} à ${formattedTime}`;
 }
