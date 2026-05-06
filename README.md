@@ -119,7 +119,7 @@ BackupQuest utilise l'updater officiel Tauri v2 avec GitHub Releases. L'applicat
 https://github.com/W3liseth/BackupQuest/releases/latest/download/latest.json
 ```
 
-Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows avec `tauri-apps/tauri-action@action-v0.6.2`, signe les artefacts updater et publie automatiquement `latest.json` dans la release.
+Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows avec `tauri-apps/tauri-action@action-v0.6.2`, signe les artefacts updater et publie automatiquement `latest.json` dans la release. Le nom de la release reprend le tag GitHub, et le patch note est genere automatiquement depuis les pull requests mergees depuis la release precedente.
 
 Avant de publier une release, configurer les secrets GitHub suivants :
 
@@ -139,12 +139,12 @@ La cle publique de l'updater est deja integree dans `src-tauri/tauri.conf.json`.
 Pour publier une nouvelle version :
 
 1. Mettre a jour la version dans `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`.
-2. Creer un tag au format `app-vX.Y.Z`.
+2. Creer un tag au format `vX.Y.Z`.
 3. Pousser le tag sur GitHub.
 
 ```powershell
-git tag app-v0.2.0
-git push origin app-v0.2.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 Une fois la release publiee, les utilisateurs peuvent aller dans `Options > Mises a jour`, verifier la disponibilite d'une version, puis installer la mise a jour automatiquement.

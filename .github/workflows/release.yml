@@ -2,9 +2,14 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, par exemple v1.0.0"
+        required: true
+        type: string
   push:
     tags:
-      - "app-v*"
+      - "v*"
 
 jobs:
   release-windows:
@@ -33,6 +38,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve release tag
+        id: release
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            "tag=${{ inputs.tag }}" >> $env:GITHUB_OUTPUT
+          } else {
+            "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          }
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@action-v0.6.2
         env:
@@ -41,9 +56,9 @@ jobs:
           BACKUPQUEST_GOOGLE_CLIENT_ID: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_ID }}
           BACKUPQUEST_GOOGLE_CLIENT_SECRET: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_SECRET }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "BackupQuest ${{ github.ref_name }}"
-          releaseBody: "Nouvelle version de BackupQuest. Installeur Windows et manifest updater inclus."
+          tagName: ${{ steps.release.outputs.tag }}
+          releaseName: ${{ steps.release.outputs.tag }}
+          generateReleaseNotes: true
           releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true
