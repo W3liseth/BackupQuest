@@ -104,6 +104,26 @@ jobs:
           }
 
           $assetName = "BackupQuest_${version}_x64.msi"
+          $normalizedMsiPath = Join-Path $bundleDir $assetName
+          $normalizedSignaturePath = "$normalizedMsiPath.sig"
+
+          if ($msi.FullName -ne $normalizedMsiPath) {
+            Copy-Item -LiteralPath $msi.FullName -Destination $normalizedMsiPath -Force
+            Copy-Item -LiteralPath $signaturePath -Destination $normalizedSignaturePath -Force
+          }
+
+          gh release upload $tag $normalizedMsiPath $normalizedSignaturePath --clobber
+
+          if ($msi.Name -ne $assetName) {
+            $releaseAssetNames = @(gh release view $tag --json assets --jq ".assets[].name")
+            if ($releaseAssetNames -contains $msi.Name) {
+              gh release delete-asset $tag $msi.Name --yes
+            }
+            if ($releaseAssetNames -contains "$($msi.Name).sig") {
+              gh release delete-asset $tag "$($msi.Name).sig" --yes
+            }
+          }
+
           $assetUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$assetName"
           $releaseNotes = gh release view $tag --json body --jq ".body"
           if ([string]::IsNullOrWhiteSpace($releaseNotes)) {
