@@ -14,7 +14,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   Archive,
-  CalendarClock,
   Check,
   ChevronRight,
   Cloud,
@@ -26,6 +25,7 @@ import {
   Loader2,
   Minus,
   Play,
+  Radio,
   RotateCcw,
   Settings,
   Square,
@@ -50,6 +50,7 @@ import type {
   OAuthFlow,
   OAuthPoll,
   View,
+  WowProcessStatus,
 } from "./types";
 import {
   EmptyState,
@@ -106,6 +107,10 @@ function App() {
   const [deletingBackupPath, setDeletingBackupPath] = useState("");
   const [selectedRestore, setSelectedRestore] = useState<string>("");
   const [restoreVersions, setRestoreVersions] = useState<string[]>([]);
+  const [wowProcessStatus, setWowProcessStatus] = useState<WowProcessStatus>({
+    running: false,
+    processes: [],
+  });
   const [oauthBusy, setOauthBusy] = useState(false);
   const [oauthMessage, setOauthMessage] = useState<string>("");
   const configRef = useRef<AppConfig>(EMPTY_CONFIG);
@@ -527,6 +532,25 @@ function App() {
       config: configRef.current,
     });
 
+  const refreshWowProcessStatus = useCallback(async () => {
+    try {
+      const status = await invoke<WowProcessStatus>("get_wow_process_status", {
+        config: configRef.current,
+      });
+      setWowProcessStatus(status);
+    } catch (error) {
+      console.warn("Supervision WoW impossible", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshWowProcessStatus();
+    const timer = window.setInterval(() => {
+      void refreshWowProcessStatus();
+    }, 5_000);
+    return () => window.clearInterval(timer);
+  }, [refreshWowProcessStatus]);
+
   const runBackup = async (manual: boolean) => {
     if (runningBackupRef.current) {
       return;
@@ -666,7 +690,7 @@ function App() {
       await persistConfig(preparedConfig);
       const flow = await invoke<OAuthFlow>("start_google_oauth");
       await openUrl(flow.authUrl);
-      setOauthMessage(`En attente du callback OAuth sur ${flow.redirectUri}`);
+      setOauthMessage(`En attente de connexion`);
 
       const token = await pollOAuthFlow(flow);
       const nextConfig = mergeGoogleToken(configRef.current, token);
@@ -896,6 +920,7 @@ function App() {
                 onGoBackup={() => setActiveView("backup")}
                 selectedVersionLabels={selectedVersionLabels}
                 versions={versions}
+                wowProcessStatus={wowProcessStatus}
               />
             )}
 
@@ -926,6 +951,7 @@ function App() {
                 runningBackup={runningBackup}
                 scanning={scanning}
                 versions={versions}
+                wowProcessStatus={wowProcessStatus}
               />
             )}
 
@@ -973,6 +999,7 @@ function DashboardView({
   onGoBackup,
   selectedVersionLabels,
   versions,
+  wowProcessStatus,
 }: {
   activities: ActivityItem[];
   backups: BackupArchive[];
@@ -980,6 +1007,7 @@ function DashboardView({
   onGoBackup: () => void;
   selectedVersionLabels: string;
   versions: GameVersion[];
+  wowProcessStatus: WowProcessStatus;
 }) {
   const latestBackup = backups[0];
   const totalPayload = versions.reduce((total, version) => total + version.sizeBytes, 0);
@@ -1006,10 +1034,10 @@ function DashboardView({
           detail="Interface et WTF detectes"
         />
         <MetricTile
-          icon={CalendarClock}
-          label="Sauvegarde auto"
-          value={config.cronEnabled ? "Active" : "Pause"}
-          detail={scheduleSummary(config.cronExpression)}
+          icon={Radio}
+          label="World of Warcraft"
+          value={wowProcessStatus.running ? "Lance" : "Ferme"}
+          detail={wowProcessDetail(wowProcessStatus)}
         />
       </div>
 
@@ -1397,6 +1425,18 @@ function activityClassName(kind: ActivityKind) {
     return `${base} bg-[#3a2022] text-[#ff9f8d]`;
   }
   return `${base} bg-[#1f1f1f] text-[#f5f5f5]`;
+}
+
+function wowProcessDetail(status: WowProcessStatus) {
+  if (!status.running) {
+    return "Aucun client WoW detecte";
+  }
+
+  const labels = status.processes
+    .map((process) => process.versionName || process.name)
+    .filter(Boolean);
+
+  return labels.length > 0 ? labels.join(", ") : "Client WoW en cours";
 }
 
 function toErrorMessage(error: unknown) {

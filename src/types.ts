@@ -66,6 +66,18 @@ export type BackupProgress = {
   totalFiles: number;
 };
 
+export type WowProcessInfo = {
+  name: string;
+  executablePath?: string | null;
+  versionId?: string | null;
+  versionName?: string | null;
+};
+
+export type WowProcessStatus = {
+  running: boolean;
+  processes: WowProcessInfo[];
+};
+
 export type OAuthFlow = {
   flowId: string;
   authUrl: string;

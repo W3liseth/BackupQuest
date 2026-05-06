@@ -8,7 +8,6 @@ use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
     path::{Component, Path, PathBuf},
-    process::Command,
     sync::{
         mpsc::{self, Receiver, TryRecvError},
         Mutex,
@@ -16,6 +15,7 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime},
 };
+use sysinfo::{ProcessesToUpdate, System};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -173,6 +173,22 @@ struct BackupProgress {
     total_files: u64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WowProcessStatus {
+    running: bool,
+    processes: Vec<WowProcessInfo>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WowProcessInfo {
+    name: String,
+    executable_path: Option<String>,
+    version_id: Option<String>,
+    version_name: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RestoreRequest {
@@ -308,6 +324,11 @@ async fn run_backup(
 #[tauri::command]
 async fn is_selected_game_running(config: AppConfig) -> Result<bool, String> {
     run_blocking(move || is_selected_game_running_inner(&config)).await
+}
+
+#[tauri::command]
+async fn get_wow_process_status(config: AppConfig) -> Result<WowProcessStatus, String> {
+    run_blocking(move || wow_process_status_inner(&config)).await
 }
 
 #[tauri::command]
@@ -833,6 +854,10 @@ fn run_backup_inner(
 }
 
 fn is_selected_game_running_inner(config: &AppConfig) -> AppResult<bool> {
+    Ok(wow_process_status_inner(config)?.running)
+}
+
+fn wow_process_status_inner(config: &AppConfig) -> AppResult<WowProcessStatus> {
     let selected_paths = config
         .game_dir
         .as_deref()
@@ -845,28 +870,61 @@ fn is_selected_game_running_inner(config: &AppConfig) -> AppResult<bool> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
+    let version_lookup = config
+        .game_dir
+        .as_deref()
+        .map(Path::new)
+        .and_then(|path| list_game_versions_inner(path).ok())
+        .unwrap_or_default()
+        .into_iter()
+        .map(|version| (normalize_path_for_compare(&version.path), version))
+        .collect::<Vec<_>>();
 
     let processes = running_wow_processes()?;
-    if processes.is_empty() {
-        return Ok(false);
-    }
-
-    if selected_paths.is_empty() {
-        return Ok(true);
-    }
-
-    Ok(processes.into_iter().any(|process| {
-        process
-            .executable_path
-            .as_deref()
-            .map(|path| {
-                let normalized = normalize_path_for_compare(path);
-                selected_paths
+    let process_infos = processes
+        .into_iter()
+        .map(|process| {
+            let normalized_process_path = process
+                .executable_path
+                .as_deref()
+                .map(normalize_path_for_compare);
+            let matched_version = normalized_process_path.as_ref().and_then(|path| {
+                version_lookup
                     .iter()
-                    .any(|version_path| normalized.starts_with(version_path))
-            })
-            .unwrap_or(true)
-    }))
+                    .find(|(version_path, _)| path.starts_with(version_path))
+                    .map(|(_, version)| version)
+            });
+
+            WowProcessInfo {
+                name: process.name,
+                executable_path: process.executable_path,
+                version_id: matched_version.map(|version| version.id.clone()),
+                version_name: matched_version.map(|version| version.name.clone()),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let running = if selected_paths.is_empty() {
+        !process_infos.is_empty()
+    } else {
+        process_infos.iter().any(|process| {
+            process
+                .executable_path
+                .as_deref()
+                .map(|path| {
+                    let normalized = normalize_path_for_compare(path);
+                    selected_paths
+                        .iter()
+                        .any(|version_path| normalized.starts_with(version_path))
+                })
+                .unwrap_or(true)
+        })
+    };
+
+    Ok(WowProcessStatus {
+        running,
+        processes: process_infos,
+    })
 }
 
 #[cfg(windows)]
@@ -938,47 +996,38 @@ fn windows_notification_toast_icon(app: &tauri::AppHandle) -> Option<PathBuf> {
 
 #[derive(Debug)]
 struct RunningWowProcess {
+    name: String,
     executable_path: Option<String>,
 }
 
 fn running_wow_processes() -> AppResult<Vec<RunningWowProcess>> {
-    #[cfg(windows)]
-    {
-        let script = r#"
-$names = @('Wow.exe','WowClassic.exe','WowClassicT.exe','WowB.exe')
-Get-CimInstance Win32_Process | Where-Object { $names -contains $_.Name } | ForEach-Object {
-  if ($_.ExecutablePath) { $_.ExecutablePath } else { $_.Name }
-}
-"#;
-        let output = Command::new("powershell")
-            .args(["-NoProfile", "-Command", script])
-            .output()?;
+    let mut system = System::new_all();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+    Ok(system
+        .processes()
+        .values()
+        .filter_map(|process| {
+            let name = process.name().to_string_lossy().to_string();
+            if !is_wow_process_name(&name) {
+                return None;
+            }
 
-        if !output.status.success() {
-            return Err(AppError::Message(
-                "Detection du processus World of Warcraft impossible.".to_string(),
-            ));
-        }
-
-        let text = String::from_utf8_lossy(&output.stdout);
-        Ok(text
-            .lines()
-            .map(str::trim)
-            .filter(|line| !line.is_empty())
-            .map(|line| RunningWowProcess {
-                executable_path: if line.contains('\\') || line.contains('/') {
-                    Some(line.to_string())
-                } else {
-                    None
-                },
+            Some(RunningWowProcess {
+                name,
+                executable_path: process
+                    .exe()
+                    .map(path_to_string)
+                    .filter(|path| !path.trim().is_empty()),
             })
-            .collect())
-    }
+        })
+        .collect())
+}
 
-    #[cfg(not(windows))]
-    {
-        Ok(Vec::new())
-    }
+fn is_wow_process_name(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "wow.exe" | "wowclassic.exe" | "wowclassict.exe" | "wowb.exe"
+    )
 }
 
 fn normalize_path_for_compare(path: impl AsRef<Path>) -> String {
@@ -2094,6 +2143,7 @@ pub fn run() {
             list_game_versions,
             watch_game_directory,
             is_selected_game_running,
+            get_wow_process_status,
             send_system_notification,
             run_backup,
             list_backups,

@@ -1,7 +1,7 @@
-import { Archive, Cloud, FolderOpen, HardDrive, Loader2, Play, RefreshCw } from "lucide-react";
+import { Archive, Cloud, FolderOpen, HardDrive, Loader2, Play, Radio, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AutoBackupSettings } from "./AutoBackupSettings";
-import type { AppConfig, CandidateGameDir, GameVersion } from "./types";
+import type { AppConfig, CandidateGameDir, GameVersion, WowProcessStatus } from "./types";
 import { EmptyState, formatBytes, PathDisplay, StatusPill, ToggleOption } from "./viewShared";
 
 export function BackupView({
@@ -22,6 +22,7 @@ export function BackupView({
   runningBackup,
   scanning,
   versions,
+  wowProcessStatus,
 }: {
   candidates: CandidateGameDir[];
   config: AppConfig;
@@ -40,6 +41,7 @@ export function BackupView({
   runningBackup: boolean;
   scanning: boolean;
   versions: GameVersion[];
+  wowProcessStatus: WowProcessStatus;
 }) {
   return (
     <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
@@ -73,6 +75,28 @@ export function BackupView({
             path={config.gameDir}
             placeholder="Aucun dossier WoW selectionne"
           />
+
+          <div
+            className={`mt-4 flex items-start gap-3 rounded-md border p-3 ${
+              wowProcessStatus.running
+                ? "border-[#92400e] bg-[#3b2608] text-[#fbbf24]"
+                : "border-[#1f7a3d] bg-[#143d24] text-[#86efac]"
+            }`}
+          >
+            <Radio className="mt-0.5 size-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                {wowProcessStatus.running
+                  ? "World of Warcraft est lance"
+                  : "World of Warcraft est ferme"}
+              </p>
+              <p className="mt-1 break-words text-xs opacity-85">
+                {wowProcessStatus.running
+                  ? wowProcessLabel(wowProcessStatus)
+                  : "Les sauvegardes automatiques peuvent demarrer normalement."}
+              </p>
+            </div>
+          </div>
 
           {candidates.length > 0 && (
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -239,4 +263,16 @@ export function BackupView({
       </aside>
     </div>
   );
+}
+
+function wowProcessLabel(status: WowProcessStatus) {
+  const labels = status.processes
+    .map((process) => process.versionName || process.name)
+    .filter(Boolean);
+
+  if (labels.length === 0) {
+    return "Un client WoW est en cours d'execution. Les sauvegardes automatiques seront reportees.";
+  }
+
+  return `${labels.join(", ")} en cours. Les sauvegardes automatiques seront reportees.`;
 }
