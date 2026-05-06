@@ -111,6 +111,44 @@ src-tauri/target/release/bundle/
 
 Selon la configuration Tauri, vous pouvez y retrouver un installeur `msi`, `nsis`, ou les deux.
 
+## Releases et mises a jour automatiques
+
+BackupQuest utilise l'updater officiel Tauri v2 avec GitHub Releases. L'application verifie le fichier suivant :
+
+```text
+https://github.com/W3liseth/BackupQuest/releases/latest/download/latest.json
+```
+
+Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows, signe les artefacts updater et publie automatiquement `latest.json` dans la release.
+
+Avant de publier une release, configurer les secrets GitHub suivants :
+
+```text
+TAURI_SIGNING_PRIVATE_KEY
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+BACKUPQUEST_GOOGLE_CLIENT_ID
+BACKUPQUEST_GOOGLE_CLIENT_SECRET
+```
+
+La cle publique de l'updater est deja integree dans `src-tauri/tauri.conf.json`. La cle privee doit rester secrete. En local, elle a ete generee dans :
+
+```text
+%USERPROFILE%\.tauri\backupquest-updater.key
+```
+
+Pour publier une nouvelle version :
+
+1. Mettre a jour la version dans `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`.
+2. Creer un tag au format `app-vX.Y.Z`.
+3. Pousser le tag sur GitHub.
+
+```powershell
+git tag app-v0.2.0
+git push origin app-v0.2.0
+```
+
+Une fois la release publiee, les utilisateurs peuvent aller dans `Options > Mises a jour`, verifier la disponibilite d'une version, puis installer la mise a jour automatiquement.
+
 ## Structure des sauvegardes
 
 BackupQuest cree un dossier de sauvegarde par version du jeu afin d'eviter de melanger les archives.

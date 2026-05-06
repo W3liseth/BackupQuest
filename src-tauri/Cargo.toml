@@ -35,3 +35,5 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 tauri-winrt-notification = "0.7.2"
 windows-registry = "0.5.3"
 notify = "8.2.0"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

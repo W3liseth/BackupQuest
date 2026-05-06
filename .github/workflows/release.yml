@@ -1,0 +1,50 @@
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "app-v*"
+
+jobs:
+  release-windows:
+    permissions:
+      contents: write
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          BACKUPQUEST_GOOGLE_CLIENT_ID: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_ID }}
+          BACKUPQUEST_GOOGLE_CLIENT_SECRET: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_SECRET }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "BackupQuest ${{ github.ref_name }}"
+          releaseBody: "Nouvelle version de BackupQuest. Installeur Windows et manifest updater inclus."
+          releaseDraft: false
+          prerelease: false
+          updaterJsonPreferNsis: true
