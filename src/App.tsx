@@ -738,11 +738,39 @@ function App() {
     );
     await wait(0);
     try {
-      const freshConfig = await ensureFreshGoogleToken(configRef.current);
-      const result = await invoke<BackupResult>("run_backup", {
-        config: freshConfig,
-        manual,
-      });
+      const shouldForceGoogleRefresh = !manual && configRef.current.backupCloud;
+      let freshConfig = await ensureFreshGoogleToken(
+        configRef.current,
+        shouldForceGoogleRefresh,
+      );
+      let result: BackupResult;
+
+      try {
+        result = await invoke<BackupResult>("run_backup", {
+          config: freshConfig,
+          manual,
+        });
+      } catch (error) {
+        if (
+          !freshConfig.backupCloud ||
+          !freshConfig.google.refreshToken ||
+          !isGoogleUnauthorizedError(error)
+        ) {
+          throw error;
+        }
+
+        pushActivity(
+          "warning",
+          "Session Google rafraichie",
+          "Google Drive a refuse le token pendant le backup. BackupQuest retente avec une session neuve.",
+        );
+        freshConfig = await ensureFreshGoogleToken(freshConfig, true);
+        result = await invoke<BackupResult>("run_backup", {
+          config: freshConfig,
+          manual,
+        });
+      }
+
       pushActivity(
         "success",
         manual ? "Backup manuel termine" : "Backup automatique termine",
