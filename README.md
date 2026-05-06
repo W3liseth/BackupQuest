@@ -119,7 +119,7 @@ BackupQuest utilise l'updater officiel Tauri v2 avec GitHub Releases. L'applicat
 https://github.com/W3liseth/BackupQuest/releases/latest/download/latest.json
 ```
 
-Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows, signe les artefacts updater et publie automatiquement `latest.json` dans la release.
+Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows avec `tauri-apps/tauri-action@action-v0.6.2`, signe les artefacts updater et publie automatiquement `latest.json` dans la release.
 
 Avant de publier une release, configurer les secrets GitHub suivants :
 
