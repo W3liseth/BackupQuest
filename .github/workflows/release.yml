@@ -48,6 +48,21 @@ jobs:
             "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
           }
 
+      - name: Validate release secrets
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          BACKUPQUEST_GOOGLE_CLIENT_ID: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_ID }}
+          BACKUPQUEST_GOOGLE_CLIENT_SECRET: ${{ secrets.BACKUPQUEST_GOOGLE_CLIENT_SECRET }}
+        run: |
+          $missing = @()
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { $missing += "TAURI_SIGNING_PRIVATE_KEY" }
+          if ([string]::IsNullOrWhiteSpace($env:BACKUPQUEST_GOOGLE_CLIENT_ID)) { $missing += "BACKUPQUEST_GOOGLE_CLIENT_ID" }
+          if ([string]::IsNullOrWhiteSpace($env:BACKUPQUEST_GOOGLE_CLIENT_SECRET)) { $missing += "BACKUPQUEST_GOOGLE_CLIENT_SECRET" }
+          if ($missing.Count -gt 0) {
+            throw "Secrets GitHub manquants: $($missing -join ', ')"
+          }
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@action-v0.6.2
         env:
@@ -61,4 +76,5 @@ jobs:
           generateReleaseNotes: true
           releaseDraft: false
           prerelease: false
-          updaterJsonPreferNsis: true
+          args: --bundles msi
+          releaseAssetNamePattern: "[name]_[version]_[arch][ext]"

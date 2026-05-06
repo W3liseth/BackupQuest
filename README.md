@@ -121,6 +121,14 @@ https://github.com/W3liseth/BackupQuest/releases/latest/download/latest.json
 
 Le workflow GitHub Actions `.github/workflows/release.yml` build l'application Windows avec `tauri-apps/tauri-action@action-v0.6.2`, signe les artefacts updater et publie automatiquement `latest.json` dans la release. Le nom de la release reprend le tag GitHub, et le patch note est genere automatiquement depuis les pull requests mergees depuis la release precedente.
 
+La release publie uniquement le package MSI. L'asset GitHub est renomme sans suffixe de langue, par exemple :
+
+```text
+BackupQuest_1.0.1_x64.msi
+```
+
+Le build WiX local peut conserver un suffixe de langue dans le dossier `target`, mais l'asset de release telechargeable est renomme par le workflow.
+
 Avant de publier une release, configurer les secrets GitHub suivants :
 
 ```text
