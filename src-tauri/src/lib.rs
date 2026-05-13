@@ -1216,22 +1216,46 @@ fn upload_drive_archive(
     body.extend_from_slice(&bytes);
     write!(body, "\r\n--{boundary}--\r\n")?;
 
-    let response = reqwest::blocking::Client::new()
-        .post("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,createdTime,modifiedTime")
-        .bearer_auth(token)
-        .header("Content-Type", format!("multipart/related; boundary={boundary}"))
-        .body(body)
-        .send()?;
+    let client = reqwest::blocking::Client::builder()
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(180))
+        .build()?;
+    let upload_url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,createdTime,modifiedTime";
+    let mut last_error = None;
 
-    if response.status().is_success() {
-        Ok(response.json()?)
-    } else {
-        let status = response.status();
-        let body = response.text().unwrap_or_default();
-        Err(AppError::Message(format!(
-            "Upload Google Drive refuse ({status}): {body}"
-        )))
+    for attempt in 1..=3 {
+        match client
+            .post(upload_url)
+            .bearer_auth(token)
+            .header("Content-Type", format!("multipart/related; boundary={boundary}"))
+            .body(body.clone())
+            .send()
+        {
+            Ok(response) if response.status().is_success() => {
+                return Ok(response.json()?);
+            }
+            Ok(response) => {
+                let status = response.status();
+                let body = response.text().unwrap_or_default();
+                return Err(AppError::Message(format!(
+                    "Upload Google Drive refuse ({status}): {body}"
+                )));
+            }
+            Err(error) => {
+                last_error = Some(error);
+                if attempt < 3 {
+                    thread::sleep(Duration::from_secs(2 * attempt));
+                }
+            }
+        }
     }
+
+    Err(AppError::Message(format!(
+        "Upload Google Drive impossible apres 3 tentatives: {}",
+        last_error
+            .map(|error| error.to_string())
+            .unwrap_or_else(|| "erreur reseau inconnue".to_string())
+    )))
 }
 
 fn google_access_token(google: &GoogleDriveConfig) -> AppResult<&str> {
